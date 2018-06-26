@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="canonical" href="https://blog.csdn.net/dreamrealised/article/details/12885739"/> 
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="referrer" content="always">
+    <meta name="description" content="详细介绍了AOP的核心功能（拦截功能）在底层是如何实现的；介绍了两种实现AOP的动态代理：jdk动态代理和cglib动态代理，并详细描述了它们在代码层面的实现。" />
+    <meta name="keywords" content="aop,cglib" />
+    <meta http-equiv="Cache-Control" content="no-siteapp" /><link rel="alternate" media="handheld" href="#" />
+    <meta name="shenma-site-verification" content="5a59773ab8077d4a62bf469ab966a63b_1497598848">
+    <script src="https://csdnimg.cn/release/phoenix/vendor/tingyun/tingyun-rum-blog.js"></script>
+
+    <link href="https://csdnimg.cn/public/favicon.ico" rel="SHORTCUT ICON">
+    <title>AOP的底层实现-CGLIB动态代理和JDK动态代理 - CSDN博客</title>
+    
+            <link rel="stylesheet" href="https://csdnimg.cn/release/phoenix/template/css/detail-60a2c245da.min.css">
+        <link rel="stylesheet" href="https://csdnimg.cn/release/phoenix/themes/skin3-template/skin3-template-88717cedf2.min.css">
+
+    <script type="text/javascript">
+        var username = "dreamrealised";
+        var blog_address = "https://blog.csdn.net/dreamrealised";
+        var static_host = "https://csdnimg.cn/release/phoenix/";
+        var currentUserName = ""; 
+        var isShowAds = true;
+        var isOwner = false;
+        var loginUrl = "https://passport.csdn.net/account/login?from=https://blog.csdn.net/dreamrealised/article/details/12885739"
+        var blogUrl = "https://blog.csdn.net/";
+        var curSkin = "skin3-template";
+    </script>
+    <script type="text/javascript">
+        // Traffic Stats of the entire Web site By baidu
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?6bcd52f51e9b3dce32bec4a3997715ac";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+        // Traffic Stats of the entire Web site By baidu end
+    </script>
+    <script src="https://csdnimg.cn/public/common/libs/jquery/jquery-1.9.1.min.js" type="text/javascript"></script>
+    <script src="https://csdnimg.cn/rabbit/exposure-click/main-1.0.6.js"></script>
+        <script type="text/javascript" src="https://csdnimg.cn/pubfooter/js/tracking-1.0.2.js" charset="utf-8"></script>
+        <link rel="stylesheet" href="https://csdnimg.cn/public/sandalstrap/1.3/css/sandalstrap.min.css"> 
+    <style>
+        .MathJax, .MathJax_Message, .MathJax_Preview{
+            display: none
+        }
+    </style>
+</head>
+<body>    
+    <link rel="stylesheet" href="https://csdnimg.cn/public/common/toolbar/content_toolbar_css/content_toolbar.css">
+    <script id="toolbar-tpl-scriptId" src="https://csdnimg.cn/public/common/toolbar/js/content_toolbar.js" type="text/javascript" domain="https://blog.csdn.net/"></script>
+    <script src="https://csdnimg.cn/public/sandalstrap/1.3/fonts/csdnc/csdnc.js"></script><link rel="stylesheet" href="https://csdnimg.cn/release/phoenix/template/css/blog_code-c3a0c33d5c.css">
+<link rel="stylesheet" href="https://csdnimg.cn/release/phoenix/vendor/pagination/paging.css">
+<script type="text/javascript" src="//static.mediav.com/js/mvf_news_feed.js"></script>
+
+<header>
+	<div class="container d-flex clearfix">
+		<div class="title-box">
+			<h2 class="title-blog">
+				<a href="https://blog.csdn.net/dreamrealised">田有朋的专栏</a>
+			</h2>
+			<p class="description">技术之路最公平也最残酷的原因是：没有捷径，需要日积月累的积累，以及对技术持久的热情。...</p>
+		</div>
+		<div class="opt-box d-flex justify-content-end">
+			<a class="btn btn-sm" href="https://blog.csdn.net/dreamrealised/rss/list">
+					<svg class="icon" aria-hidden="true">
+						<use xlink:href="#csdnc-rss"></use>
+					</svg>RSS订阅</a>
+					</div>
+	</div>
+</header><script src="https://dup.baidustatic.com/js/ds.js"></script>
+<div class="container clearfix pt0" id="mainBox">
+    <main>
+        <div class="blog-content-box">
+	<div class="article-title-box">
+			<span class="article-type type-1 float-left">原</span>		<h1 class="title-article">AOP的底层实现-CGLIB动态代理和JDK动态代理</h1>
+	</div>
+	<div class="article-info-box">
+		<div class="article-bar-top d-flex">
+						<span class="c-gray">置顶</span>
+												<span class="time">2013年10月20日 19:53:52</span>
+			<div class="float-right">
+				<span class="read-count">阅读数：31284</span>
+											</div>
+		</div>
+	</div>
+	<article>
+		<div id="article_content" class="article_content clearfix csdn-tracking-statistics" data-pid="blog"  data-mod=popu_307  data-dsm = "post" >
+                    <link rel="stylesheet" href="https://csdnimg.cn/release/phoenix/template/css/htmledit_views-0a60691e80.css" />
+            <div class="htmledit_views">
+                
+<span style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">        AOP是目前Spring框架中的核心之一，在应用中具有非常重要的作用，也是Spring其他组件的基础。它是一种面向切面编程的思想。关于AOP的基础知识，相信多数童鞋都已经了如指掌，我们就略过这部分，来讲解下AOP的核心功能的底层实现机制：如何用动态代理来实现切面拦截。</span>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+        AOP的拦截功能是由java中的动态代理来实现的。说白了，就是在目标类的基础上增加切面逻辑，生成增强的目标类（该切面逻辑或者在目标类函数执行之前，或者目标类函数执行之后，或者在目标类函数抛出异常时候执行。不同的切入时机对应不同的Interceptor的种类，如BeforeAdviseInterceptor，AfterAdviseInterceptor以及ThrowsAdviseInterceptor等）。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+        那么动态代理是如何实现将切面逻辑（advise）织入到目标类方法中去的呢？下面我们就来详细介绍并实现AOP中用到的两种动态代理。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+        AOP的源码中用到了两种动态代理来实现拦截切入功能：jdk动态代理和cglib动态代理。两种方法同时存在，各有优劣。jdk动态代理是由java内部的反射机制来实现的，cglib动态代理底层则是借助asm来实现的。总的来说，反射机制在生成类的过程中比较高效，而asm在生成类之后的相关执行过程中比较高效（可以通过将asm生成的类进行缓存，这样解决asm生成类过程低效问题）。还有一点必须注意：jdk动态代理的应用前提，必须是目标类基于统一的接口。如果没有上述前提，jdk动态代理不能应用。由此可以看出，jdk动态代理有一定的局限性，cglib这种第三方类库实现的动态代理应用更加广泛，且在效率上更有优势。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+一、jdk动态代理实现AOP拦截（代码中的关键地方都添加了注释）</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<br /></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+1、为目标类（target）定义统一的接口类Service，这个是jdk动态代理必须的前提。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<pre class="java">package jdkproxy;
+
+/**
+ * 该类是所有被代理类的接口类，jdk实现的代理要求被代理类基于统一的接口
+ * 
+ * @author typ
+ * 
+ */
+public interface Service {
+	/**
+	 * add方法
+	 */
+	public void add();
+
+	/**
+	 * update方法
+	 */
+	public void update();
+}</pre>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+2、目标类AService，我们的实验目标就是在AService中add和update方法的前后实现拦截，加入自定义切面逻辑advise</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<pre class="java">package jdkproxy;
+
+/**
+ * 被代理类，即目标类target
+ * 
+ * @author typ
+ * 
+ */
+public class AService implements Service {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see jdkproxy.Service#add()
+	 */
+	public void add() {
+		System.out.println("AService add&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;");
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see jdkproxy.Service#update()
+	 */
+	public void update() {
+		System.out.println("AService update&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;");
+	}
+}</pre>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+3、实现动态代理类MyInvocationHandler，实现InvocationHandler接口，并且实现接口中的invoke方法。仔细看invoke方法，就是在该方法中加入切面逻辑的。目标类方法的执行是由mehod.invoke(target,args)这条语句完成。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<pre class="java">package jdkproxy;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+
+/**
+ * @author typ
+ *
+ */
+public class MyInvocationHandler implements InvocationHandler {
+	private Object target;
+
+	MyInvocationHandler() {
+		super();
+	}
+
+	MyInvocationHandler(Object target) {
+		super();
+		this.target = target;
+	}
+
+	public Object invoke(Object proxy, Method method, Object[] args)
+			throws Throwable {
+		// 程序执行前加入逻辑，MethodBeforeAdviceInterceptor
+		System.out.println("before-----------------------------");
+		// 程序执行
+		Object result = method.invoke(target, args);
+		// 程序执行后加入逻辑，MethodAfterAdviceInterceptor
+		System.out.println("after------------------------------");
+		return result;
+	}
+
+}
+</pre>4、测试类，其中增强的目标对象是由Proxy.newProxyInstance(aService.getClass().getClassLoader(), aService.getClass().getInterfaces(), handler);来生成的。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<pre class="java">package jdkproxy;
+
+import java.lang.reflect.Proxy;
+
+/**
+ * @author typ
+ *
+ */
+public class Test {
+	public static void main(String[] args) {
+		Service aService = new AService();
+		MyInvocationHandler handler = new MyInvocationHandler(aService);
+		// Proxy为InvocationHandler实现类动态创建一个符合某一接口的代理实例
+		Service aServiceProxy = (Service) Proxy.newProxyInstance(aService
+				.getClass().getClassLoader(), aService.getClass()
+				.getInterfaces(), handler);
+		// 由动态生成的代理对象来aServiceProxy 代理执行程序，其中aServiceProxy 符合Service接口
+		aServiceProxy.add();
+		System.out.println();
+		aServiceProxy.update();
+		// 以下是对B的代理
+		// Service bService = new BService();
+		// MyInvocationHandler handler = new MyInvocationHandler(bService);
+		// Service bServiceProxy = (Service) Proxy.newProxyInstance(bService
+		// .getClass().getClassLoader(), bService.getClass()
+		// .getInterfaces(), handler);
+		// bServiceProxy.add();
+		// System.out.println();
+		// bServiceProxy.update();
+	}
+}
+</pre>自此，jdk动态代理来实现AOP拦截机制的代码已经实现，下面我们看一下拦截的结果，程序输出结果如下：</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">before-----------------------------</span></span></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">AService add&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">after------------------------------</span></span></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">before-----------------------------</span></span></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">AService update&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></span></div>
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">after------------------------------</span></span><br />
+可以看到，在目标类AService的add和update方法前后已经加入了自定义的切面逻辑，AOP拦截机制生效了。<br /></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<br /></div>
+</div>
+</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+二、cglib动态代理实现AOP拦截（<span style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:14px;line-height:18.25px;">代码中的关键地方都添加了注释</span>）</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<br /></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+1、目标类，cglib不需要定义目标类的统一接口</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<pre class="java">package cglibproxy;
+
+/**
+ * 被代理类，即目标对象target
+ * 
+ * @author typ
+ * 
+ */
+public class Base {
+	/**
+	 * 一个模拟的add方法
+	 */
+	public void add() {
+		System.out.println("add ------------");
+	}
+}
+</pre>2、实现动态代理类CglibProxy，需要实现MethodInterceptor接口，实现intercept方法。该代理中在add方法前后加入了自定义的切面逻辑，目标类add方法执行语句为proxy.invokeSuper(object, args);<br /><pre class="java">package cglibproxy;
+
+import java.lang.reflect.Method;
+import net.sf.cglib.proxy.MethodInterceptor;
+import net.sf.cglib.proxy.MethodProxy;
+
+/**
+ * 此为代理类，用于在pointcut处添加advise
+ * 
+ * @author typ
+ * 
+ */
+public class CglibProxy implements MethodInterceptor {
+
+	public Object intercept(Object object, Method method, Object[] args,
+			MethodProxy proxy) throws Throwable {
+		// 添加切面逻辑（advise），此处是在目标类代码执行之前，即为MethodBeforeAdviceInterceptor。
+		System.out.println("before-------------");
+		// 执行目标类add方法
+		proxy.invokeSuper(object, args);
+		// 添加切面逻辑（advise），此处是在目标类代码执行之后，即为MethodAfterAdviceInterceptor。
+		System.out.println("after--------------");
+		return null;
+	}
+
+}
+</pre>3、获取增强的目标类的工厂Factory，其中增强的方法类对象是有Enhancer来实现的，代码如下所示：</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<pre class="java">package cglibproxy;
+
+import net.sf.cglib.proxy.Enhancer;
+
+/**
+ * 工厂类，生成增强过的目标类（已加入切入逻辑）
+ * 
+ * @author typ
+ * 
+ */
+public class Factory {
+	/**
+	 * 获得增强之后的目标类，即添加了切入逻辑advice之后的目标类
+	 * 
+	 * @param proxy
+	 * @return
+	 */
+	public static Base getInstance(CglibProxy proxy) {
+		Enhancer enhancer = new Enhancer();
+		enhancer.setSuperclass(Base.class);
+		//回调方法的参数为代理类对象CglibProxy，最后增强目标类调用的是代理类对象CglibProxy中的intercept方法
+		enhancer.setCallback(proxy);
+		// 此刻，base不是单纯的目标类，而是增强过的目标类
+		Base base = (Base) enhancer.create();
+		return base;
+	}
+}</pre></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+4、测试类<br /><pre class="java">package cglibproxy;
+
+/**
+ * @author typ
+ *
+ */
+public class Test {
+	public static void main(String[] args) {
+		CglibProxy proxy = new CglibProxy();
+		// base为生成的增强过的目标类
+		Base base = Factory.getInstance(proxy);
+		base.add();
+	}
+}
+</pre>自此，cglib动态代理实现的AOP拦截机制已经基本实现，下面我们来看一下拦截的效果如何，程序执行结果如下：<br /><div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">before-------------</span></span></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">add ------------</span></span></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<span style="font-size:12pt;font-family:'Courier New';"><span style="color:#6633ff;">after--------------</span></span></div>
+<span style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:14px;line-height:18.25px;">可以看到，在目标类Base的add方法前后已经加入了自定义的切面逻辑，AOP拦截机制生效了。</span><br /></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+此外，需要说明一下的是，cglib动态代理用到了第三方类库，需要在项目中引入两个jar包：cglib.jar和asm.jar。稍后会在csdn资源中上传这两个jar包。免积分的啊。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+jar包和相关代码请见<a href="http://download.csdn.net/detail/dreamrealised/6427885">http://download.csdn.net/detail/dreamrealised/6427885</a></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<br /></div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+总之，AOP的核心机制和基本功能已经能够通过动态代理来实现了，至于AOP中，如何从配置文档中得到目标类target、advisor的bean，如何判断拦截器类型等问题，就借助于Spring中另一个核心IOC来解决了，后续会有IOC的核心实现机制讲解。</div>
+<div style="font-family:'Microsoft YaHei UI', 'Microsoft YaHei', SimSun, 'Segoe UI', Tahoma, Helvetica, sans-serif, 'Microsoft YaHei', Georgia, Helvetica, Arial, sans-serif, '宋体', PMingLiU, serif;font-size:13.913043975830078px;line-height:18.2608699798584px;">
+<br /></div>
+            </div>
+                </div>
+				<div class="hide-article-box text-center csdn-tracking-statistics tracking-click" data-mod="popu_376">
+			<a class="btn btn-red-hollow" id="btn-readmore">阅读更多</a>
+		</div>
+        	</article>
+	
+		<div class="article-bar-bottom">
+						<div class="tags-box artic-tag-box">
+			<span class="label">文章标签：</span>
+						<a class="tag-link" href="http://so.csdn.net/so/search/s.do?q=aop&t=blog" target="_blank">aop						<a class="tag-link" href="http://so.csdn.net/so/search/s.do?q=cglib&t=blog" target="_blank">cglib						<a class="tag-link" href="http://so.csdn.net/so/search/s.do?q=asm&t=blog" target="_blank">asm						<a class="tag-link" href="http://so.csdn.net/so/search/s.do?q=代理&t=blog" target="_blank">代理						<a class="tag-link" href="http://so.csdn.net/so/search/s.do?q=java&t=blog" target="_blank">java						</a>
+		</div>
+						<div class="tags-box">
+			<span class="label">个人分类：</span>
+						<a class="tag-link" href="https://blog.csdn.net/dreamrealised/article/category/1705975"  target="_blank">J2EE						</a>
+		</div>
+					</div>
+	
+	<!-- !empty($pre_next_article[0]) -->
+		</div>
+<script>
+    $(".MathJax").remove();
+</script>
+
+<script type="text/javascript" src="https://static-blog.csdn.net/mdeditor/public/res/bower-libs/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+			"HTML-CSS": {
+					linebreaks: { automatic: true, width: "94%container" },
+					imageFont: null
+			},
+			tex2jax: {
+				preview: "none"
+			},
+			mml2jax: {
+				preview: 'none'
+			}
+	});
+</script>
+<script>
+	(function(){
+		var btnReadmore = $("#btn-readmore");
+		if(btnReadmore.length>0){
+			var winH = $(window).height();
+			var articleBox = $("div.article_content");
+			var artH = articleBox.height();
+			if(artH > winH*2){
+				articleBox.css({
+					'height':winH*2+'px',
+					'overflow':'hidden'
+				})
+				btnReadmore.click(function(){
+					articleBox.removeAttr("style");
+					$(this).parent().remove();
+				})
+			}else{
+				btnReadmore.parent().remove();
+			}
+		}
+	})()
+</script>        <div class="edu-promotion"></div>
+<script type="text/javascript">
+	var edu_ad_is_big_data = 0;
+	var edu_ad_id_mapping = {"0":["https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1"],"1":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit","https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1"],"8":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"],"2":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1"],"3":["https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1"],"6":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"],"12":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"],"14":["https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcweb","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=web1"],"15":["https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcjg","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1"],"16":["https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1"],"28":["https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcai","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1"],"29":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1"],"30":["https:\/\/edu.csdn.net\/sp\/blog.php?type=python1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1"],"32":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcaq"],"33":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gccxrs","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1"],"35":["https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"],"37":["https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1"],"7":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=web1","https:\/\/edu.csdn.net\/sp\/blog.php?type=web1"],"17":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1"],"34":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=python1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcbt"],"36":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=ai1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"],"31":["https:\/\/edu.csdn.net\/sp\/blog.php?type=python1","https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"],"19":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"],"20":["https:\/\/edu.csdn.net\/sp\/blog.php?type=bigdata1","https:\/\/edu.csdn.net\/sp\/blog.php?type=gcit"]};
+</script>        <a id="commentBox"></a>
+<div class="comment-box">
+	  	<div class="unlogin-box text-center">
+		想对作者说点什么？
+		<!-- $curl 当前地址 -->
+		<a href="https://passport.csdn.net/account/login?from=https://blog.csdn.net/dreamrealised/article/details/12885739#commentBox" class="btn btn-sm btn-red">我来说一句</a>
+	</div>
+			<div class="comment-list-container">
+		<a id="comments"></a>
+		<div class="comment-list-box">
+		</div>
+		<div id="commentPage" class="pagination-box d-none"></div>
+		<div class="opt-box text-center">
+			<button class="btn btn-sm btn-link-blue" id="btnMoreComment"></button>
+		</div>
+	</div>
+</div>        <div class="recommend-box">
+            		<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/danchu/article/details/70238002" target="_blank" strategy="BlogCommendFromBaidu_0">
+				<em>CGLIB</em>(Code Generation Library)详解			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/danchu/article/details/70238002" target="_blank" >
+				什么是<em>CGLIB</em>
+<em>CGLIB</em>是一个强大的、高性能的代码生成库。其被广泛应用于<em>AOP</em>框架（Spring、dyn<em>aop</em>）中，用以提供方法拦截操作。Hibernate作为一个比较受欢迎的ORM框架，同样使用...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/danchu" title="danchu" target="_blank">
+					<img src="https://avatar.csdn.net/B/1/A/3_danchu.jpg" alt="danchu" class="avatar-pic">
+					<span class="name">danchu</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2017-04-19 10:55:11</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：15639</span>
+			</p>
+		</div>
+	</div>
+					<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/zghwaicsdn/article/details/50957474" target="_blank" strategy="BlogCommendFromBaidu_1">
+				<em>CGLIB</em>介绍与原理			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/zghwaicsdn/article/details/50957474" target="_blank" >
+				<em>CGLIB</em>介绍与原理(部分节选自网络)
+一、什么是<em>CGLIB</em>?
+<em>CGLIB</em>是一个功能强大，高性能的代码生成包。它为没有实现接口的类提供代理，为<em>JDK</em>的<em>动态代理</em>提供了很好的补充。通常可以使用Java的动...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/zghwaicsdn" title="zghwaicsdn" target="_blank">
+					<img src="https://avatar.csdn.net/4/8/B/3_zghwaicsdn.jpg" alt="zghwaicsdn" class="avatar-pic">
+					<span class="name">zghwaicsdn</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2016-03-22 18:58:06</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：38216</span>
+			</p>
+		</div>
+	</div>
+								<div class="recommend-item-box recommend-ad-box" id="ad1"></div>
+				<script>
+				  var width = $("div.recommend-box").outerWidth() - 48;
+					NEWS_FEED({
+						w: width,
+						h : 90,
+						showid : 'GNKXx7',
+						placeholderId: "ad1",
+						inject : 'define',
+						define : {
+							imagePosition : 'right',
+							imageBorderRadius : 0,
+							imageWidth: 120,
+							imageHeight: 90,
+							imageFill : 'clip',
+							displayImage : true,
+							displayTitle : true,
+							titleFontSize: 20,
+							titleFontColor: '#333',
+							titleFontFamily : 'Microsoft Yahei',
+							titleFontWeight: 'bold',
+							titlePaddingTop : 0,
+							titlePaddingRight : 0,
+							titlePaddingBottom : 10,
+							titlePaddingLeft : 0,
+							displayDesc : true,
+							descFontSize: 14,
+							descFontColor: '#6b6b6b',
+							descFontFamily : 'Microsoft Yahei',
+							paddingTop : 0,
+							paddingRight : 0,
+							paddingBottom : 0,
+							paddingLeft : 0,
+							backgroundColor: '#fff',
+							hoverColor: '#ca0c16'
+						}
+					})
+				</script>
+
+			
+				<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/hintcnuie/article/details/10954631" target="_blank" strategy="BlogCommendFromBaidu_2">
+				<em>动态代理</em>proxy与<em>CGLib</em>的区别			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/hintcnuie/article/details/10954631" target="_blank" >
+				昨天被人问及<em>动态代理</em>与<em>CGlib</em>的区别，赶紧回顾一下：
+
+
+什么是代理？静态代理与<em>动态代理</em>静态代理实例<em>JDK</em><em>动态代理</em>实例<em>CGLib</em> 简介<em>CGLib</em> 与<em>JDK</em><em>动态代理</em>的区别
+
+    代理模式是Java...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/hintcnuie" title="hintcnuie" target="_blank">
+					<img src="https://avatar.csdn.net/2/8/2/3_hintcnuie.jpg" alt="hintcnuie" class="avatar-pic">
+					<span class="name">hintcnuie</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2013-09-03 08:50:56</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：27252</span>
+			</p>
+		</div>
+	</div>
+					<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/z69183787/article/details/52942102" target="_blank" strategy="BlogCommendFromBaidu_3">
+				<em>CGLIB</em>简介			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/z69183787/article/details/52942102" target="_blank" >
+				<em>CGlib</em>是什么？ 
+<em>CGlib</em>是一个强大的,高性能,高质量的Code生成类库。它可以在运行期扩展Java类与实现Java接口。 
+当然这些实际的功能是asm所提供的，asm又是什么？Java字节...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/z69183787" title="z69183787" target="_blank">
+					<img src="https://avatar.csdn.net/0/6/0/3_z69183787.jpg" alt="z69183787" class="avatar-pic">
+					<span class="name">z69183787</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2016-10-27 06:53:07</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：432</span>
+			</p>
+		</div>
+	</div>
+					<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/chenchaofuck1/article/details/51727605" target="_blank" strategy="BlogCommendFromBaidu_4">
+				Java<em>动态代理</em>：<em>JDK</em> 和<em>CGLIB</em>、Javassist、ASM之间的差别 (详细)			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/chenchaofuck1/article/details/51727605" target="_blank" >
+				class文件简介及加载
+
+
+     Java编译器编译好Java文件之后，产生.class 文件在磁盘中。这种class文件是二进制文件，内容是只有JVM虚拟机能够识别的机器码。JVM虚拟机读取字...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/chenchaofuck1" title="chenchaofuck1" target="_blank">
+					<img src="https://avatar.csdn.net/D/3/B/3_chenchaofuck1.jpg" alt="chenchaofuck1" class="avatar-pic">
+					<span class="name">chenchaofuck1</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2016-06-21 15:21:50</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：8598</span>
+			</p>
+		</div>
+	</div>
+					<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/tsun7263/article/details/4595509" target="_blank" strategy="BlogCommendFromBaidu_5">
+				在Java中利用<em>cglib</em>实现代理			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/tsun7263/article/details/4595509" target="_blank" >
+				    在上一篇文章《在Java中利用<em>动态代理</em>实现数据库连接与事务的自动管理》讲述了如何使用Java<em>动态代理</em>，但要求被代理对象要实现一个接口，如果不想实现接口怎么办呢？使用开源的<em>cglib</em>可以实现对一...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/tsun7263" title="tsun7263" target="_blank">
+					<img src="https://avatar.csdn.net/E/A/B/3_tsun7263.jpg" alt="tsun7263" class="avatar-pic">
+					<span class="name">tsun7263</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2009-09-25 21:27:00</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：10442</span>
+			</p>
+		</div>
+	</div>
+					<div class="recommend-item-box recommend-ad-box" id="a_d_feed_0"></div>
+			<script>
+				var width = $("div.recommend-box").outerWidth() - 48;
+				NEWS_FEED({
+					w: width,
+					h: 90,
+					showid: 'Afihld',
+					placeholderId: 'a_d_feed_0',
+					inject: 'define',
+					define: {
+						imagePosition: 'right',
+						imageBorderRadius: 0,
+						imageWidth: 120,
+						imageHeight: 90,
+						imageFill: 'clip',
+						displayImage: true,
+						displayTitle: true,
+						titleFontSize: 20,
+						titleFontColor: '#333',
+						titleFontFamily: 'Microsoft Yahei',
+						titleFontWeight: 'bold',
+						titlePaddingTop: 0,
+						titlePaddingRight: 0,
+						titlePaddingBottom: 10,
+						titlePaddingLeft: 0,
+						displayDesc: true,
+						descFontSize: 14,
+						descFontColor: '#6b6b6b',
+						descFontFamily: 'Microsoft Yahei',
+						paddingTop: 0,
+						paddingRight: 0,
+						paddingBottom: 0,
+						paddingLeft: 0,
+						backgroundColor: '#fff',
+						hoverColor: '#ca0c16'
+					}
+				})
+			</script>
+			<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/yakoo5/article/details/9099133" target="_blank" strategy="BlogCommendFromBaidu_6">
+				<em>CGLib</em><em>动态代理</em>原理及实现			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/yakoo5/article/details/9099133" target="_blank" >
+				<em>JDK</em>实现<em>动态代理</em>需要实现类通过接口定义业务方法，对于没有接口的类，如何实现<em>动态代理</em>呢，这就需要<em>CGLib</em>了。<em>CGLib</em>采用了非常底层的字节码技术，其原理是通过字节码技术为一个类创建子类，并在子类中采...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/yakoo5" title="yakoo5" target="_blank">
+					<img src="https://avatar.csdn.net/F/3/A/3_yakoo5.jpg" alt="yakoo5" class="avatar-pic">
+					<span class="name">yakoo5</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2013-06-15 00:01:13</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：53255</span>
+			</p>
+		</div>
+	</div>
+					<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/u013126379/article/details/52121096" target="_blank" strategy="BlogCommendFromBaidu_7">
+				Spring的两种代理<em>JDK</em>和<em>CGLIB</em>的区别浅谈			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/u013126379/article/details/52121096" target="_blank" >
+				一、原理区别：
+
+java<em>动态代理</em>是利用反射机制生成一个实现代理接口的匿名类，在调用具体方法前调用InvokeHandler来处理。
+而<em>cglib</em><em>动态代理</em>是利用asm开源包，对代理对象类的cla...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/u013126379" title="u013126379" target="_blank">
+					<img src="https://avatar.csdn.net/5/9/6/3_u013126379.jpg" alt="u013126379" class="avatar-pic">
+					<span class="name">u013126379</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2016-08-04 17:39:49</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：30197</span>
+			</p>
+		</div>
+	</div>
+						<div class="recommend-item-box recommend-download-box csdn-tracking-statistics clearfix" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+			<div class="content float-left">
+				<h4 class="text-truncate">
+					<a href="https://download.csdn.net/download/speedgoddeer/9614768" target="_blank" strategy="BlogCommendFromBaidu_8">
+						<em>cglib</em>-3.2.4.jar					</a>
+				</h4>
+				<p>
+					<span class="data">2016年08月27日 </span>
+					<span class="size">627KB</span>
+					<span class="type">下载</span>
+				</p>
+			</div>
+			<div class="img-box float-right">
+				<a href="https://download.csdn.net/download/speedgoddeer/9614768" target="_blank" strategy="BlogCommendFromBaidu_8">
+					<img src="http://csdnimg.cn/release/download/old_static/images/minetype/zip.svg" alt="">
+				</a>
+			</div>
+		</div>
+					<div class="recommend-item-box csdn-tracking-statistics" data-mod="popu_387" data-poputype="feed"  data-feed-show="false"  data-dsm="post">
+		<h4 class="text-truncate">
+			<a href="https://blog.csdn.net/u011130752/article/details/52044976" target="_blank" strategy="BlogCommendFromBaidu_9">
+				<em>cglib</em><em>动态代理</em>技术			</a>
+		</h4>
+		<p class="content">
+			<a href="https://blog.csdn.net/u011130752/article/details/52044976" target="_blank" >
+				一、原理
+
+      代理为控制要访问的目标对象提供了一种途径。当访问对象时，它引入了一个间接的层。<em>JDK</em>自从1.3版本开始，就引入了<em>动态代理</em>，并且经常被用来动态地创建代理。<em>JDK</em>的<em>动态代理</em>用起...			</a>
+		</p>
+		<div class="info-box d-flex align-content-center">
+			<p>
+				<a class="avatar" src="https://blog.csdn.net/u011130752" title="u011130752" target="_blank">
+					<img src="https://avatar.csdn.net/2/A/4/3_u011130752.jpg" alt="u011130752" class="avatar-pic">
+					<span class="name">u011130752</span>
+				</a>
+			</p>
+			<p>
+				<span class="date">2016-07-27 14:09:34</span>
+			</p>
+			<p>
+				<span class="read-num">阅读数：998</span>
+			</p>
+		</div>
+	</div>
+			            <div class="recommend-loading-box">
+                <img src='https://csdnimg.cn/release/phoenix/images/feedLoading.gif'>
+            </div>
+            <div class="recommend-end-box">
+                <p class="text-center">没有更多推荐了，<a href="https://blog.csdn.net/" class="c-blue c-blue-hover c-blue-focus">返回首页</a></p>
+            </div>
+        </div>
+    </main>
+    <aside>
+		    <div id="asideProfile" class="aside-box">
+    <h3 class="aside-title">个人资料</h3>
+    <div class="profile-intro d-flex">
+        <div class="avatar-box d-flex justify-content-center flex-column">
+            <a href="https://blog.csdn.net/dreamrealised">
+                <img src="https://avatar.csdn.net/9/5/B/3_dreamrealised.jpg" class="avatar_pic">
+            </a>
+        </div>
+        <div class="user-info d-flex justify-content-center flex-column">
+            <p class="name csdn-tracking-statistics tracking-click" data-mod="popu_379">
+                <a href="https://blog.csdn.net/dreamrealised" target="_blank" class="text-truncate" id="uid">dreamrealised</a>
+            </p>
+                    </div>
+                <div class="opt-box d-flex justify-content-center flex-column">
+            <span  class="csdn-tracking-statistics tracking-click" data-mod="popu_379">
+                                <a class="btn btn-sm btn-red-hollow" href="https://passport.csdn.net/account/login?from=https://blog.csdn.net/dreamrealised/article/details/12885739" target="_self">关注</a>
+                            </span>
+                    </div>
+            </div>
+    <div class="data-info d-flex item-tiling">
+                <dl class="text-center" title="45">
+                        <dt><a href="https://blog.csdn.net/dreamrealised?t=1">原创</a></dt>
+            <dd><a href="https://blog.csdn.net/dreamrealised?t=1"><span class="count">45</span></a></dd>
+                    </dl>
+        <dl class="text-center" title="63">
+            <dt>粉丝</dt>
+            <dd><span class="count" id="fan">63</span></dd>
+        </dl>
+        <dl class="text-center" title="9">
+            <dt>喜欢</dt>
+            <dd><span class="count">9</span></dd>
+        </dl>
+        <dl class="text-center" title="42">
+            <dt>评论</dt>
+            <dd><span class="count">42</span></dd>
+        </dl>
+    </div>
+    <div class="grade-box clearfix">
+        <dl>
+            <dt>等级：</dt>
+            <dd>
+                <a href="https://blog.csdn.net/home/help.html#level" title="5级,点击查看等级说明" target="_blank">
+                    <svg class="icon icon-level" aria-hidden="true">
+                        <use xlink:href="#csdnc-bloglevel-5"></use>
+                    </svg>
+                </a>
+            </dd>
+        </dl>
+        <dl>
+            <dt>访问：</dt>
+            <dd title="154661">
+                15万+            </dd>
+        </dl>
+        <dl>
+            <dt>积分：</dt>
+            <dd title="2026">
+                2026            </dd>
+        </dl>
+        <dl title="24360">
+            <dt>排名：</dt>
+            <dd>2万+</dd>
+        </dl>
+    </div>
+    </div>		    <div class="csdn-tracking-statistics mb8 box-shadow" data-pid="blog" data-mod="popu_4" style="height:250px;">
+    <div class="aside-content text-center" id="cpro_u2734133">
+        <!-- 投放代码 -->
+        <script type="text/javascript" src="//cee1.iteye.com/lgyyovfyh.js"></script>
+    </div>
+</div>
+		    <div id="asideNewArticle" class="aside-box">
+    <h3 class="aside-title">最新文章</h3>
+    <div class="aside-content">
+        <ul class="inf_list clearfix csdn-tracking-statistics tracking-click" data-mod="popu_382">
+                        <li class="clearfix">
+                <a href="https://blog.csdn.net/dreamrealised/article/details/26555207" target="_blank">用javap命令反编译来分析字符串问题</a>
+            </li>
+                        <li class="clearfix">
+                <a href="https://blog.csdn.net/dreamrealised/article/details/22318227" target="_blank">MySQL的一些配置问题</a>
+            </li>
+                        <li class="clearfix">
+                <a href="https://blog.csdn.net/dreamrealised/article/details/16855573" target="_blank">C++基础总结</a>
+            </li>
+                        <li class="clearfix">
+                <a href="https://blog.csdn.net/dreamrealised/article/details/16115605" target="_blank">让我们来破坏单例模式</a>
+            </li>
+                        <li class="clearfix">
+                <a href="https://blog.csdn.net/dreamrealised/article/details/14348897" target="_blank">hibernate缓存</a>
+            </li>
+                    </ul>
+    </div>
+</div>
+		    		    <div id="asideCategory" class="aside-box flexible-box">
+    <h3 class="aside-title">个人分类</h3>
+    <div class="aside-content">
+        <ul>
+                        <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/category/1460067">
+                    总结                    <span class="count float-right">25篇</span>
+                </a>
+            </li>
+                        <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/category/1460065">
+                    随笔                    <span class="count float-right">15篇</span>
+                </a>
+            </li>
+                        <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/category/1705973">
+                    java                    <span class="count float-right">3篇</span>
+                </a>
+            </li>
+                        <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/category/1705975">
+                    J2EE                    <span class="count float-right">3篇</span>
+                </a>
+            </li>
+                        <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/category/1706497">
+                    云计算                    <span class="count float-right">2篇</span>
+                </a>
+            </li>
+                        <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/category/1706499">
+                    数据库                    <span class="count float-right">1篇</span>
+                </a>
+            </li>
+                        <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/category/1757941">
+                    c++                    <span class="count float-right">1篇</span>
+                </a>
+            </li>
+                    </ul>
+    </div>
+        <p class="text-center">
+        <a class="btn btn-link-blue flexible-btn" data-fbox="aside-archive">展开</a>
+    </p>
+    </div>
+		    <div id="asideArchive" class="aside-box flexible-box">
+    <h3 class="aside-title">归档</h3>
+    <div class="aside-content">
+        <ul class="archive-list">
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2014/05">
+                    2014年5月                    <span class="count float-right">1篇</span>
+                </a>
+            </li>
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2014/03">
+                    2014年3月                    <span class="count float-right">1篇</span>
+                </a>
+            </li>
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2013/11">
+                    2013年11月                    <span class="count float-right">3篇</span>
+                </a>
+            </li>
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2013/10">
+                    2013年10月                    <span class="count float-right">7篇</span>
+                </a>
+            </li>
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2013/09">
+                    2013年9月                    <span class="count float-right">5篇</span>
+                </a>
+            </li>
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2013/08">
+                    2013年8月                    <span class="count float-right">3篇</span>
+                </a>
+            </li>
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2013/07">
+                    2013年7月                    <span class="count float-right">3篇</span>
+                </a>
+            </li>
+                        <!--归档统计-->
+            <li>
+                <a href="https://blog.csdn.net/dreamrealised/article/month/2013/06">
+                    2013年6月                    <span class="count float-right">25篇</span>
+                </a>
+            </li>
+                    </ul>
+    </div>
+        <p class="text-center">
+        <a class="btn btn-link-blue flexible-btn" data-fbox="aside-archive">展开</a>
+    </p>
+    </div>
+		    <div id="asideHotArticle" class="aside-box">
+	<h3 class="aside-title">热门文章</h3>
+	<div class="aside-content">
+		<ul class="hotArticle-list csdn-tracking-statistics tracking-click" data-mod="popu_521">
+							<li>
+					<a href="https://blog.csdn.net/dreamrealised/article/details/12885739">AOP的底层实现-CGLIB动态代理和JDK动态代理</a>
+					<p class="read">阅读量：<span>31264</span></p>
+				</li>
+							<li>
+					<a href="https://blog.csdn.net/dreamrealised/article/details/9123199">Spring的配置文档applicationContext.xml</a>
+					<p class="read">阅读量：<span>10366</span></p>
+				</li>
+							<li>
+					<a href="https://blog.csdn.net/dreamrealised/article/details/9126389">Spring的sessionFactory配置详解</a>
+					<p class="read">阅读量：<span>8476</span></p>
+				</li>
+							<li>
+					<a href="https://blog.csdn.net/dreamrealised/article/details/12912007">写代码简单比较init-method，afterPropertiesSet和BeanPostProcessor</a>
+					<p class="read">阅读量：<span>7911</span></p>
+				</li>
+							<li>
+					<a href="https://blog.csdn.net/dreamrealised/article/details/9127811">Spring的datasource配置详解</a>
+					<p class="read">阅读量：<span>6872</span></p>
+				</li>
+					</ul>
+	</div>
+</div>
+		    <div id="asideNewComments" class="aside-box">
+    <h3 class="aside-title">最新评论</h3>
+    <div class="aside-content">
+        <ul class="newcomment-list">
+                        <li>
+                <a class="title text-truncate" target="_blank" href="https://blog.csdn.net/dreamrealised/article/details/12612349#comments">教你编写简单的网络爬虫</a>
+                <p class="comment">
+                    <a href="https://my.csdn.net/m925986445" class="user-name" target="_blank">m925986445</a>：java开源爬虫那么多，推荐一个简单的webmagic，http://ihongqiqu.com/...                </p>
+            </li>
+                        <li>
+                <a class="title text-truncate" target="_blank" href="https://blog.csdn.net/dreamrealised/article/details/12885739#comments">AOP的底层实现-CGLIB动态代...</a>
+                <p class="comment">
+                    <a href="https://my.csdn.net/qq_36899469" class="user-name" target="_blank">qq_36899469</a>：学习到了，谢谢博主的分享~~~                </p>
+            </li>
+                        <li>
+                <a class="title text-truncate" target="_blank" href="https://blog.csdn.net/dreamrealised/article/details/12885739#comments">AOP的底层实现-CGLIB动态代...</a>
+                <p class="comment">
+                    <a href="https://my.csdn.net/u013043341" class="user-name" target="_blank">u013043341</a>：学习到了，谢谢博主的分享~~~                </p>
+            </li>
+                        <li>
+                <a class="title text-truncate" target="_blank" href="https://blog.csdn.net/dreamrealised/article/details/9126389#comments">Spring的sessionFac...</a>
+                <p class="comment">
+                    <a href="https://my.csdn.net/qq_29913809" class="user-name" target="_blank">qq_29913809</a>：123                </p>
+            </li>
+                        <li>
+                <a class="title text-truncate" target="_blank" href="https://blog.csdn.net/dreamrealised/article/details/11264445#comments">利用Perf4j 对java项目进...</a>
+                <p class="comment">
+                    <a href="https://my.csdn.net/yangchangji" class="user-name" target="_blank">yangchangji</a>：private Map&lt;String, StopWatch&gt; watches = ne...                </p>
+            </li>
+                    </ul>
+    </div>
+</div>
+		<div id="asideFooter">
+			
+		<div class="aside-box">
+						<script type="text/javascript" src="//cee1.iteye.com/avneunkwb.js"></script>
+					</div>
+				<div class="aside-box">
+			<div class="persion_article">
+			</div>
+		</div>
+	</div>
+</aside>
+<script src="https://csdnimg.cn/pubfooter/js/publib_footer-1.0.3.js" data-isfootertrack="false" type="text/javascript"></script>
+<script>
+	$("a.flexible-btn").click(function(){
+		$(this).parents('div.aside-box').removeClass('flexible-box');
+		$(this).remove();
+	})
+</script>
+</div>
+<div class="mask-dark"></div>
+<div class="pulllog-box" style="display: block;">
+	<div class="pulllog clearfix">
+		<span class="text float-left">加入CSDN，享受更精准的内容推荐，与500万程序员共同成长！</span>
+		<div class="pulllog-btn float-right clearfix">
+            <button class="pulllog-login float-left csdn-tracking-statistics tracking-click" data-mod="popu_557">
+                登录
+            </button>
+            <div class="pulllog-sigin float-left csdn-tracking-statistics tracking-click" data-mod="popu_558">
+                <a href="https://passport.csdn.net/account/mobileregister" target="_blank">注册</a>
+            </div>
+            <button class="btn-close">
+                <svg class="icon" aria-hidden="true">
+                    <use xlink:href="#csdnc-times"></use>
+                </svg>
+            </button>
+		</div>
+	</div>
+</div>
+<div id="loginWrap" style="display:none"></div>
+<div class="tool-box">
+	<ul class="meau-list">
+		<li>
+			<button class="btn-like " title="点赞">
+				<svg class="icon active" aria-hidden="true">
+					<use xlink:href="#csdnc-thumbsup-ok"></use>
+				</svg><svg class="icon no-active" aria-hidden="true">
+					<use xlink:href="#csdnc-thumbsup"></use>
+				</svg>
+				<p>37</p>
+			</button>
+		</li>
+		<li class="toc-container-box" id="liTocBox">
+			<button class="btn-toc" title="目录">
+				<svg class="icon" aria-hidden="true">
+					<use xlink:href="#csdnc-contents"></use>
+				</svg><br>目录
+			</button>
+			<div class="toc-container">
+				<div class="pos-box">
+					<div class="icon-arrow"></div>
+					<div class="scroll-box">
+						<div class="toc-box"></div>
+					</div>
+				</div>
+				<div class="opt-box">
+					<button class="btn-opt prev nomore" title="向上">
+						<svg class="icon" aria-hidden="true">
+							<use xlink:href="#csdnc-chevronup"></use>
+						</svg>
+					</button>
+					<button class="btn-opt next">
+						<svg class="icon" aria-hidden="true">
+							<use xlink:href="#csdnc-chevrondown"></use>
+						</svg>
+					</button>
+				</div>
+			</div>
+		</li>
+		<li>
+			<button class="btn-bookmark" title="收藏">
+				<svg class="icon active" aria-hidden="true">
+					<use xlink:href="#csdnc-bookmark-ok"></use>
+				</svg><svg class="icon no-active" aria-hidden="true">
+					<use xlink:href="#csdnc-bookmark"></use>
+				</svg><br>收藏
+			</button>
+		</li>
+		<li>
+			<a class="btn-comments" title="评论" href="#commentBox">
+				<svg class="icon" aria-hidden="true">
+					<use xlink:href="#csdnc-comments"></use>
+				</svg><br>评论
+			</a>
+		</li>
+				<li class="bdsharebuttonbox">
+			<a class="btn-comments bds_weixin" data-cmd="weixin" title="微信分享">
+				<svg class="icon" aria-hidden="true">
+					<use xlink:href="#csdnc-wechat"></use>
+				</svg><br>微信
+			</a>
+		</li>
+		<li class="bdsharebuttonbox">
+			<a class="btn-comments bds_tsina" data-cmd="tsina" title="微博分享">
+				<svg class="icon" aria-hidden="true">
+					<use xlink:href="#csdnc-weibo"></use>
+				</svg><br>微博
+			</a>
+		</li>
+		<li class="bdsharebuttonbox">
+			<a class="btn-comments bds_qzone" data-cmd="qzone" title="QQ分享">
+				<svg class="icon" aria-hidden="true">
+					<use xlink:href="#csdnc-qq"></use>
+				</svg><br>QQ
+			</a>
+		</li>
+	</ul>
+</div>
+<script>window._bd_share_config = { "common": { "bdSnsKey": {}, "bdText": "", "bdMini": "1", "bdMiniList": false, "bdPic": "", "bdStyle": "0", "bdSize": "16" }, "share": {} }; with (document) 0[(getElementsByTagName('head')[0] || body).appendChild(createElement('script')).src = 'https://csdnimg.cn/static/api/js/share.js?v=89860594'];</script>
+<script>
+    var recommendCount = 10;
+    recommendCount = recommendCount > 1 ? (recommendCount + (recommendCount>6 ? 2 : 1)) : recommendCount;
+    var articleTit = "AOP的底层实现-CGLIB动态代理和JDK动态代理";
+    var ChannelId = 16;
+    var articleId = "12885739";
+    var commentscount = 9;
+    var islock = false;
+    var curentUrl = "https://blog.csdn.net/dreamrealised/article/details/12885739";
+    var myUrl = "https://my.csdn.net/";
+    //1禁止评论，2正常
+    var commentAuth = 2;
+    //百度搜索
+    var baiduKey = "cglib+%E5%AE%9E%E7%8E%B0aspect";
+    var needInsertBaidu = true;
+</script>
+<script src="https://csdnimg.cn/public/sandalstrap/1.3/js/sandalstrap.min.js"></script>
+<script src="https://csdnimg.cn/release/phoenix/vendor/pagination/paging.js"></script>
+<script src='https://csdnimg.cn/public/common/gotop/js/goTop-v1.0.min.js?v201803151422'></script>
+<script>
+    GoTop({
+        right: 8,
+        hasReport: true,
+        reportFun: function() {
+            showReport(false,"AOP的底层实现-CGLIB动态代理和JDK动态代理");
+        }
+    })
+</script>
+<script src="https://csdnimg.cn/release/phoenix/template/js/common-bd54b21308.min.js"></script>
+<script src="https://csdnimg.cn/release/phoenix/template/js/detail-f35b0a5ad1.min.js"></script>
+<script src="https://csdnimg.cn/release/phoenix/themes/skin3-template/skin3-template-46c7bd3d86.min.js"></script>
+<script src="https://csdnimg.cn/search/baidu_search-1.1.2.js?v=201802071056&autorun=true&install=true&keyword=cglib+%E5%AE%9E%E7%8E%B0aspect"  type="text/javascript"></script>
+</body>
+<div class="box-box-default">
+    <a class="btn-remove">
+        关闭
+    </a>
+    <script type="text/javascript" src="//cee1.iteye.com/mhzzjepzz.js"></script>
+</div>
+<div class="box-box-large">
+    <a class="btn-remove">
+        关闭
+    </a>
+    <script type="text/javascript" src="//cee1.iteye.com/idvveasfs.js"></script>
+</div>
+</html>

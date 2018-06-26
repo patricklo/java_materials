@@ -1,0 +1,1 @@
+document.write("<a class=\"\" href=\"http://special.chinaitlab.com/bigdate/index.html\"  target=\"_blank\"><font color=\"#ff0000\">大数据与互联网技术峰会免费注册<\/font><\/a><br> <a class=\"\" href=\"http://www.51tarena.com/?it1\" target=\"_blank\">java培训到达内，行业领先品牌<\/a>");
